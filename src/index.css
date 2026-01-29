@@ -1,0 +1,30 @@
+@font-face {
+  font-family: 'DotFont'; /* 好きな名前をつけてOK */
+  /* ファイルへのパス。cssファイルから見た相対パスで書く */
+  src: url('./assets/fonts/Nosutaru-dotMPlusH-10-Regular.ttf') format('truetype');
+}
+
+:root {
+  /* ラフ画っぽい色味の定義 */
+  --bg-color: #ffeedd;      /* 薄い肌色 */
+  --dot-color: #ff8888;     /* 水玉の赤 */
+  --folder-bg: #fff0f5;     /* フォルダの中身（薄ピンク） */
+  --border-color: #e85d5d;  /* 線の色（濃い赤） */
+  --text-color: #5a2d2d;    /* 文字色（焦げ茶） */
+}
+
+body {
+  margin: 0;
+  font-family: 'DotFont', sans-serif; /* ドットフォント適用 */
+  color: var(--text-color);
+  
+  background-color: var(--bg-color);
+  background-image: radial-gradient(var(--dot-color) 20%, transparent 20%);
+  background-position: 0 0;
+  background-size: 20px 20px; /* 水玉の間隔 */
+}
+
+/* 3. ボタンを押した時の「ペコッ」となる動き */
+button:active {
+  transform: translateY(2px);
+}
