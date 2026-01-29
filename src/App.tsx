@@ -17,7 +17,7 @@ const makeGrid = ({ row, col }: GridSize) => {
 
 function App() {
   const [activeTab, setActiveTab] = useState<'edit' | 'view'> ('edit');
-  const [palette,setPalette] = useState(['#000000', '#FFFFFF']);
+  const [palette,setPalette] = useState(['#FFFFFF', '#000000']);
   const [nowColorID, setNowColorID] = useState(1);
   const [grid, setGrid] = useState(() => makeGrid(DEFAULT_SIZE));
 
@@ -61,9 +61,9 @@ function App() {
       
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
         {activeTab === 'edit' ? (
-          <Editor grid={grid} ChangeGrid={ChangeGrid} UpdataPaletteID={UpdataPaletteID} addColor={addColor}/>
+          <Editor grid={grid} palette={palette} nowColorID={nowColorID} setNowColorID={setNowColorID} ChangeGrid={ChangeGrid} UpdataPaletteID={UpdataPaletteID} addColor={addColor}/>
         ): (
-          <Viewer grid={grid} />
+          <Viewer grid={grid} palette={palette} />
         )}
       </div>
 
