@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Crochet Dot Maker (細編みドット絵エディタ) 🧶✨
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+かぎ針編み（細編み）の編み図作成から、実際の制作サポートまでをシームレスに行うための Web アプリケーションです。
 
-Currently, two official plugins are available:
+## プロジェクト概要
+このプロジェクトは、「編み物でドット絵を再現したい」というニーズに応えるためのシミュレーターです。
+細編み特有のゲージ（縦横比）を考慮した描画や、編んでいる最中の「今どこを編んでいるか」を管理する機能を備えています。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+##  使用技術
+| カテゴリ | 選定技術 | 理由 |
+| :--- | :--- | :--- |
+| **Frontend** | React + TypeScript | 堅牢なロジック記述とコンポーネント管理のため |
+| **Build Tool** | Vite | 高速な開発サイクルのため |
+| **Styling** | Tailwind CSS | UI構築の効率化とレスポンシブ対応のため |
+| **State** | React Context API | 色データや設定のグローバル管理のため |
+| **Storage** | idb-keyval (IndexedDB) | サーバーレスでのオートセーブ機能実現のため |
+| **Graphics** | Canvas API | 画像のドット化処理と描画パフォーマンス確保のため |
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+##  主な機能
 
-## Expanding the ESLint configuration
+### 1. 編集モード（設計）
+- **画像インポート & ドット化**: `<canvas>` API を使用。単純な縮小ではなく「減色処理（量子化）」を施し、しきい値スライダーで変換の粗さを調整可能。
+- **トレース機能**: 読み込んだ画像を下絵（レイヤー）として表示し、透明度を調整しながらドットを打つことが可能。
+- **細編みゲージシミュレーション**: 任意のゲージ数を入力することで、完成サイズ（cm）と必要な毛糸量（概算）を自動算出。
+- **自由描画**: ペン・消しゴム・塗りつぶし・パレットの一括変換・キャンバス回転。
+- **オートセーブ**: `idb-keyval` を用い、ブラウザを閉じても作業内容を自動保持。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 2. 作成モード（制作支援）
+- **プログレス管理**: 編み終わった段を暗く表示し、進捗を視覚化。
+- **スマート指示書**: 「白3目、赤2目...」といった段ごとの目数を自動でテキスト表示。
+- **チェック機能**: 色変えのタイミングでチェックを入れることで、数え間違いを防止。
+- **コンテキスト表示**: 現在の段だけでなく、前後の段の情報も同時に表示し、全体の流れを把握。
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 📅 ロードマップ (Todoリスト)
+- [x] React + TypeScript の基本環境構築
+- [x] 30x30 グリッドの基本エディタ実装
+- [x] タブ切り替えロジックの実装
+- [ ] Canvas API を用いた画像ドット変換ロジックの実装
+- [ ] IndexedDB によるオートセーブ機能の実装
+- [ ] 作成モード（編み図指示書生成）の実装
+- [ ] 各色ごとの使用量概算ロジックの実装
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🎨 ファイル構成（主要部分）
+```text
+src/
+├── components/
+│   ├── Editor/       # 編集モード用コンポーネント
+│   ├── Viewer/       # 作成モード用コンポーネント
+│   └── Common/       # パレット、スライダー等の共通UI
+├── hooks/
+│   ├── useCanvas.ts  # 画像処理ロジック
+│   └── useStorage.ts # オートセーブ関連
+└── context/
+    └── GridContext.tsx # グリッドデータのグローバル管理
