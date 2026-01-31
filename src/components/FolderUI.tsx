@@ -13,7 +13,7 @@ const pixelSize = 5;
 export const FolderUI = ({ currentTab, setCurrentTab, children }: UIProps) => {
   
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
       
       <div style={{ display: 'flex', gap: `25px`, paddingLeft: '30px',  alignItems: 'flex-end' }}>
 
