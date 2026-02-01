@@ -61,8 +61,32 @@ function App() {
         canvas.height = gridSize.row;
 
         if (ctx) {
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          // ピクセルデータ（RGBAの配列）を取得
+            // --- ここから位置計算のロジック ---
+          const imgRatio = img.width / img.height;
+          const gridRatio = gridSize.col / gridSize.row;
+
+          let drawWidth, drawHeight
+
+          if (imgRatio > gridRatio) {
+            // 画像の方が横長：横幅いっぱいに合わせる
+            drawWidth = gridSize.col;
+            drawHeight = gridSize.col / imgRatio;
+          } else {
+            // 画像の方が縦長：高さに合わせる
+            drawHeight = gridSize.row;
+            drawWidth = gridSize.row * imgRatio;
+          }
+
+          // 下揃え (Bottom Center) のためのオフセット計算
+          const offsetX = (gridSize.col - drawWidth) / 2;
+          const offsetY = gridSize.row - drawHeight; // 上に余白を作る（＝下揃え）
+
+          // 背景を一旦クリア（白または透明）
+          ctx.fillStyle = "#FFFFFF"; 
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          // 計算した位置に描画
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
           // 16進数カラーコードをRGB数値に変換する補助関数

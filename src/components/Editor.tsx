@@ -114,6 +114,7 @@ export const Editor = ({
                 </div>
             </div>
             {/* 中央：キャンパス */}
+            {/* 中央：キャンパス (ここが400x400の「額縁」) */}
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -123,32 +124,42 @@ export const Editor = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
+                border: 'none',
+                overflow: 'hidden',
             }}>
-                {backgroundImage && (
-                    <div style={{
-                        position: 'absolute', // グリッドの下に潜り込ませる
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        backgroundImage: `url(${backgroundImage})`,
-                        backgroundSize: 'contain', // 枠内に収まるように表示
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat',
-                        opacity: bgOpacity, // ★ここで「薄さ」を調整（0.1〜1.0）
-                        zIndex: 0, // 一番下へ
-                        pointerEvents: 'none'
-                    }} />
-                )}
+                {/* 実際のキャンバス（グリッドエリア） */}
                 <div style={{
                     width: gridSize.col >= gridSize.row ? '100%' : 'auto',
                     height: gridSize.row > gridSize.col ? '100%' : 'auto',
                     aspectRatio: `${gridSize.col} / ${gridSize.row}`,
                     display: 'flex',
                     flexDirection: 'column',
+                    position: 'relative', // ★ここが背景画像の「基準」になります
+                    zIndex: 0, 
                 }}>
+                    {/* ▼▼▼ 下書き画像レイヤー：キャンバスの範囲内だけに表示 ▼▼▼ */}
+                    {backgroundImage && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            backgroundImage: `url(${backgroundImage})`,
+                            // contain は、枠（キャンバス）の短い辺に合わせて比率を保ちます
+                            backgroundSize: 'contain', 
+                            // ★ 下辺の中央に揃える
+                            backgroundPosition: 'bottom center', 
+                            backgroundRepeat: 'no-repeat',
+                            opacity: bgOpacity,
+                            zIndex: 1, 
+                            pointerEvents: 'none'
+                        }} />
+                    )}
+
+                    {/* グリッドの描画 */}
                     {grid.map((row, i) => (
-                        <div key={i} style={{ display: 'flex',flex: 1}}>
+                        <div key={i} style={{ display: 'flex', flex: 1 }}>
                             {row.map((colorID, j) => (
                                 <div
                                     key={`${i}-${j}`}
@@ -158,7 +169,10 @@ export const Editor = ({
                                         width: '100%',
                                         height: '100%',
                                         border: '0.5px solid rgba(0, 0, 0, 0.15)',
-                                        backgroundColor: palette[colorID],
+                                        // 背景が見えるように、白(#FFFFFF)の時は少し透けさせる
+                                        backgroundColor: palette[colorID] === '#FFFFFF' && backgroundImage 
+                                            ? 'rgba(255, 255, 255, 0.2)' 
+                                            : palette[colorID],
                                         cursor: 'pointer',
                                     }}
                                 />
