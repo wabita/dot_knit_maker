@@ -134,16 +134,6 @@ export const Editor = ({
                     <button onClick={() => setMode('hand')} style={{ flex: 1, height: '30px', backgroundColor: mode === 'hand' ? 'var(--border-color)' : 'white', color: mode === 'hand' ? 'white' : 'black' }}><i className="bi bi-hand-index-thumb-fill"></i></button>
                 </div>
 
-                {/* 4. ZOOM & 下書き位置リセット */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '10px', border: '2px solid var(--border-color)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 'bold' }}>data edit</div>
-                    <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-out"></i></button>
-                        <button onClick={() => setZoom(Math.min(zoom + 0.1, 3.0))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-in"></i></button>
-                        <button onClick={() => { setOffset({x:0, y:0}); setZoom(1); }} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-arrows-fullscreen"></i></button>
-                    </div>
-                </div>
-
             </div>
 
             {/* 中央*/}
@@ -156,7 +146,14 @@ export const Editor = ({
 
                     cursor: mode === 'hand' ? (isPanning ? 'grabbing' : 'grab') : mode === 'draft' ? 'move' : 'crosshair'
                 }}>
-                    
+                {/*拡大縮小・配置リセット */}
+                <div style={{ 
+                    position: 'absolute', top: '10px', left: '10px', zIndex: 10,
+                    display: 'flex', gap: '10px',flexDirection: 'column',justifyContent: 'center' }}>
+                    <button onClick={() => setZoom(Math.min(zoom + 0.1, 3.0))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-in"></i></button>
+                    <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-out"></i></button>
+                    <button onClick={() => { setOffset({x:0, y:0}); setZoom(1); }} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-arrows-fullscreen"></i></button>
+                </div>
                 {/* 実際のキャンバス（グリッドエリア） */}
                 <div style={{
                     width: gridSize.col >= gridSize.row ? '100%' : 'auto',
@@ -211,23 +208,10 @@ export const Editor = ({
                         </div>
                     ))}
                 </div>
-            </div>
-
-            {/* 右側：パレット */}
-            <div style={{ 
-                position: 'relative', 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignSelf: 'flex-start',
-                marginLeft: '7px',
-                gap: '15px'
-            }}>
-                {/* ヒストリー（戻る・進む）ボタン - 一番上に追加 */}
+                {/*戻る進むボタン */}
                 <div style={{ 
-                    display: 'flex', gap: '10px', padding: '10px', 
-                    border: '4px solid var(--border-color)', borderRadius: '8px', backgroundColor: '#f4f1e8',
-                    justifyContent: 'center'
-                }}>
+                    position: 'absolute', top: '10px',right: '10px', zIndex: 10,
+                    display: 'flex', gap: '10px',flexDirection: 'column',justifyContent: 'center' }}>
                     <button 
                         onClick={undo} 
                         disabled={!canUndo}
@@ -242,7 +226,20 @@ export const Editor = ({
                     >
                         <i className="bi bi-arrow-90deg-right"></i>
                     </button>
+
                 </div>
+            </div>
+
+            {/* 右側：パレット */}
+            <div style={{ 
+                position: 'relative', 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignSelf: 'flex-start',
+                marginLeft: '7px',
+                gap: '15px'
+            }}>
+
 
                 {/* ペンサイズ選択 */}
                 <div style={{ 

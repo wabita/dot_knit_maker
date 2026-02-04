@@ -13,8 +13,8 @@ const pixelSize = 5;
 export const FolderUI = ({ currentTab, setCurrentTab, children }: UIProps) => {
   
   return (
-    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-      
+    <div style={{ padding: '100px', maxWidth: '900px', margin: '0 auto' }}>
+      {/*タブボタン*/}
       <div style={{ display: 'flex', gap: `25px`, paddingLeft: '30px',  alignItems: 'flex-end' }}>
 
         <TabButton 
@@ -28,12 +28,12 @@ export const FolderUI = ({ currentTab, setCurrentTab, children }: UIProps) => {
           onClick={() => setCurrentTab('view')} 
         />
       </div>
-
+      {/*タブ内容*/}
       <div
         style={{
           backgroundColor: 'var(--folder-bg)',
           position: 'relative',
-          padding: '20px',
+          padding: '10px 20px',
           minHeight: '500px',
           zIndex: 2,
           
@@ -117,9 +117,6 @@ const TabButton = ({ label, isActive, onClick }: TabButtonProps) => {
              ${pixelSize}px  ${isActive ? 0 : pixelSize}px 0 0 var(--border-color)
         `,
 
-
-
-        // 箱へのめり込み調整
         marginBottom: `-${pixelSize * 2}px`, 
         
         
