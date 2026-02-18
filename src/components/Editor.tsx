@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState ,useEffect} from 'react';
 import { FolderUI } from './FolderUI';
 
 type SideTab = 'data' | 'size';
@@ -11,6 +11,40 @@ const SIDE_TABS: { label: string; value: SideTab }[] = [
 const numInputStyle = { width: '50px', padding: '4px', border: '2px solid var(--border-color)', borderRadius: '4px', textAlign: 'center' as const, fontWeight: 'bold' as const };
 const toolToggleStyle = (active: boolean) => ({ flex: 1, height: '35px', border: '2px solid var(--border-color)', borderRadius: '6px', backgroundColor: active ? 'var(--border-color)' : 'white', color: active ? 'white' : 'black', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' as const });
 const circleBtnStyle = (enabled: boolean) => ({ cursor: enabled ? 'pointer' : 'not-allowed', width: '35px', height: '35px', border: '3px solid var(--border-color)', borderRadius: '50%', backgroundColor: 'white', opacity: enabled ? 1 : 0.4 });
+
+const saveBtnStyle = (bg: string, color: string) => ({
+    padding: '10px',
+    width: '100%',
+    backgroundColor: bg,
+    color: color,
+    border: `2px solid var(--border-color)`,
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: 'bold' as const,
+    fontSize: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px'
+});
+
+// ボタンの共通スタイルを生成する関数
+const actionBtnStyle = (color: string) => ({
+    padding: '8px',
+    borderRadius: '8px',
+    border: `2px solid ${color}`,
+    backgroundColor: 'white',
+    color: color,
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 'bold' as const, // TypeScriptで文字列リテラルとして扱うために必要
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '5px',
+    transition: 'all 0.2s'
+});
+
 type EditorProps = {
     grid: number[][];
     palette: string[];
@@ -40,13 +74,22 @@ type EditorProps = {
     canUndo: boolean;
     canRedo: boolean;
     endAction: () => void;
+
+    bgScale: number;
+    setBgScale: (val: number) => void;
+    saveProject: (isOverwrite: boolean) => void;
+    isProjectLoaded: boolean;
+    isFavorite: boolean;
+    onDelete: () => void;
+    onToggleFavorite: () => void;
 };
 
 export const Editor = ({ 
     grid, palette, nowColorID, setNowColorID, 
     UpdataPaletteID, addColor, handleImageUpload ,gridSize, resizeGrid,backgroundImage,
     bgOpacity, setBgOpacity, penSize, setPenSize, paintCells, setLastPos, zoom, setZoom,
-    handleRefreshConversion, clearGrid, bgOffset, setBgOffset, undo, redo, canUndo, canRedo, endAction
+    handleRefreshConversion, clearGrid, bgOffset, setBgOffset, undo, redo, canUndo, canRedo, endAction,
+    bgScale, setBgScale, saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
 }: EditorProps) => {
     const [inputSize, setInputSize] = useState(gridSize);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -55,6 +98,30 @@ export const Editor = ({
     const [isPanning, setIsPanning] = useState(false); // 手のひらツール中か
     const [mode, setMode] = useState<'pen' | 'hand' | 'draft'>('pen'); // ツールモード
     const [activeTab, setActiveTab] = useState<'data' | 'size'> ('data');
+    const [isResizing, setIsResizing] = useState(false);//サイズ変更中かどうか
+
+    useEffect(() => {
+        setInputSize(gridSize);
+    }, [gridSize]);
+
+    // マウス移動時の処理を拡張
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isPanning) return;
+
+        if (mode === 'hand') {
+            setOffset(prev => ({ x: prev.x + e.movementX, y: prev.y + e.movementY }));
+        } else if (mode === 'draft') {
+            if (isResizing) {
+                // リサイズ処理：右に動かせば拡大
+                const delta = e.movementX * 0.005; 
+                setBgScale(Math.max(0.1, bgScale + delta));
+            } else {
+                // 移動処理
+                setBgOffset({ x: bgOffset.x + e.movementX, y: bgOffset.y + e.movementY });
+            }
+        }
+    };
+
     // 計算用ステート（ゲージ計算など）
     const [gauge, setGauge] = useState<{
         stitches: number | ''; 
@@ -83,17 +150,8 @@ export const Editor = ({
         }
         setIsDrawing(false);
         setIsPanning(false);
+        setIsResizing(false); // ★ ここを忘れずに！
         setLastPos(null);
-    };
-    // マウス移動時の処理
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (isPanning) {
-            if (mode === 'hand') {
-                setOffset(prev => ({ x: prev.x + e.movementX, y: prev.y + e.movementY }));
-            } else if (mode === 'draft') {
-                setBgOffset({ x: bgOffset.x + e.movementX, y: bgOffset.y + e.movementY });
-            }
-        }
     };
 
     // ホイール操作で拡大縮小
@@ -123,6 +181,7 @@ export const Editor = ({
                     <div style={{ 
                             padding: '15px 0', 
                             height: '180px', 
+                            width: '150px',
                             minHeight: '180px', 
                             boxSizing: 'border-box',
                             display: 'flex',
@@ -302,13 +361,70 @@ export const Editor = ({
                     {/*下書き画像レイヤー */}
                     {backgroundImage && (
                         <div style={{
-                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            backgroundImage: `url(${backgroundImage})`, backgroundSize: 'contain',
-                            backgroundPosition: 'bottom center', backgroundRepeat: 'no-repeat',
-                            opacity: bgOpacity, zIndex: 1, pointerEvents: 'none',
-                            transform: `translate(${bgOffset.x}px, ${bgOffset.y}px)`
-                        }} />
-                    )}
+                            position: 'absolute',
+                            top: 0, left: 0, width: '100%', height: '100%',
+                            zIndex: 1,
+                            pointerEvents: mode === 'draft' ? 'auto' : 'none', // モード中だけ触れる
+                            transform: `translate(${bgOffset.x}px, ${bgOffset.y}px) scale(${bgScale})`,
+                            transformOrigin: 'center center',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}>
+                            {/* 実際の画像 */}
+                            <div style={{
+                                position: 'relative', // ハンドルの基準点になる
+                                width: 'auto',
+                                height: 'auto',
+                                maxWidth: '100%',     // 親枠からはみ出さないように制限
+                                maxHeight: '100%',    // 親枠からはみ出さないように制限
+                                display: 'flex',      // imgタグの隙間対策
+                            }}>
+                                <img 
+                                    src={backgroundImage}
+                                    alt="下書き"
+                                    style={{
+                                        width: 'auto',
+                                        height: 'auto',
+                                        maxWidth: '100%',      // コンテナに合わせて縮小
+                                        maxHeight: '100%',     // コンテナに合わせて縮小
+                                        opacity: bgOpacity,
+                                        objectFit: 'contain',  // 念のためアスペクト比を維持
+                                        userSelect: 'none',    // 画像自体の選択を防ぐ
+                                        pointerEvents: 'none', // 画像自体のドラッグを防ぐ
+                                    }}
+                                />
+                                {mode === 'draft' && (
+                                    <>
+                                        {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(pos => (
+                                            <div
+                                                key={pos}
+                                                onMouseDown={(e) => {
+                                                    e.stopPropagation();
+                                                    setIsResizing(true);
+                                                    setIsPanning(true); // リサイズ中もPanning状態を利用
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    width: '10px', height: '10px',
+                                                    backgroundColor: 'white',
+                                                    border: `2px solid var(--border-color)`,
+                                                    cursor: 'nwse-resize', 
+                                                    transform: `scale(${1 / bgScale})`,
+                                                    ...(pos === 'top-left' && { top: -5, left: -5 }),
+                                                    ...(pos === 'top-right' && { top: -5, right: -5 }),
+                                                    ...(pos === 'bottom-left' && { bottom: -5, left: -5 }),
+                                                    ...(pos === 'bottom-right' && { bottom: -5, right: -5 }),
+                                                    }}
+                                                />
+                                            ))}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    
+
 
                     {/* グリッドの描画 */}
                     {grid.map((row, i) => (
@@ -371,7 +487,37 @@ export const Editor = ({
                 gap: '15px'
             }}>
 
+                {/* 作品の保存ボタン */}
+                {/* 保存ボタンエリア */}
+                <div style={{ display: 'flex', gap: '5px' }}>
+                    {isProjectLoaded && (
+                        <button onClick={() => saveProject(true)} style={saveBtnStyle('white', 'var(--border-color)')}>
+                            <i className="bi bi-check-all"></i> 上書き
+                        </button>
+                    )}
+                    <button onClick={() => saveProject(false)} style={saveBtnStyle('var(--border-color)', 'white')}>
+                        <i className="bi bi-plus-circle"></i> {isProjectLoaded ? '別名' : 'ほぞん'}
+                    </button>
+                </div>
 
+                {/* ★ お気に入り & 削除ボタン（読み込み時のみ表示） */}
+                {isProjectLoaded && (
+                    <div style={{ display: 'flex', gap: '5px' }}>
+                        <button 
+                            onClick={onToggleFavorite}
+                            style={{ ...actionBtnStyle(isFavorite ? '#ffc107' : '#666'), flex: 2 }}
+                        >
+                            <i className={`bi bi-star${isFavorite ? '-fill' : ''}`}></i>
+                            {isFavorite ? ' お気に入り中' : ' お気に入り'}
+                        </button>
+                        <button 
+                            onClick={onDelete}
+                            style={{ ...actionBtnStyle('#ff4d4f'), flex: 1 }}
+                        >
+                            <i className="bi bi-trash3"></i>
+                        </button>
+                    </div>
+                )}
                 {/* ペンサイズ選択 */}
                 <div style={{ 
                     display: 'flex', gap: '5px', padding: '10px', 
@@ -419,7 +565,7 @@ export const Editor = ({
                     border: '4px solid var(--border-color)',
                     borderRadius: '8px',
                     backgroundColor: '#f4f1e8',
-                    maxHeight: '300px', 
+                    maxHeight: '270px', 
                     overflowY: 'auto',
                     paddingTop: '20px',
                     paddingBottom: '20px'
