@@ -1,5 +1,16 @@
 import { useState } from 'react';
+import { FolderUI } from './FolderUI';
 
+type SideTab = 'data' | 'size';
+
+const SIDE_TABS: { label: string; value: SideTab }[] = [
+  { label: '下書き', value: 'data' },
+  { label: 'サイズ', value: 'size' },
+];
+
+const numInputStyle = { width: '50px', padding: '4px', border: '2px solid var(--border-color)', borderRadius: '4px', textAlign: 'center' as const, fontWeight: 'bold' as const };
+const toolToggleStyle = (active: boolean) => ({ flex: 1, height: '35px', border: '2px solid var(--border-color)', borderRadius: '6px', backgroundColor: active ? 'var(--border-color)' : 'white', color: active ? 'white' : 'black', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' as const });
+const circleBtnStyle = (enabled: boolean) => ({ cursor: enabled ? 'pointer' : 'not-allowed', width: '35px', height: '35px', border: '3px solid var(--border-color)', borderRadius: '50%', backgroundColor: 'white', opacity: enabled ? 1 : 0.4 });
 type EditorProps = {
     grid: number[][];
     palette: string[];
@@ -43,6 +54,27 @@ export const Editor = ({
     const [offset, setOffset] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false); // 手のひらツール中か
     const [mode, setMode] = useState<'pen' | 'hand' | 'draft'>('pen'); // ツールモード
+    const [activeTab, setActiveTab] = useState<'data' | 'size'> ('data');
+    // 計算用ステート（ゲージ計算など）
+    const [gauge, setGauge] = useState<{
+        stitches: number | ''; 
+        rows: number | '';
+        yarnPerStitch: number;
+    }>({
+        stitches: '', 
+        rows: '',
+        yarnPerStitch: 2.5,
+    });
+    // 各色の使用数を数える
+    const getColorCounts = () => {
+        const counts: Record<number, number> = {};
+        grid.forEach(row => {
+            row.forEach(colorID => {
+                counts[colorID] = (counts[colorID] || 0) + 1;
+            });
+        });
+        return counts;
+    };
 
     // 描画終了時の処理
     const stopDrawing = () => {
@@ -77,46 +109,77 @@ export const Editor = ({
     
 
     return (
-        /* 全体*/
-        <div onMouseUp={stopDrawing}
-             onMouseLeave={stopDrawing}
-             onMouseMove={handleMouseMove}
-            style={{ 
-                display: 'inline-flex', 
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: '10px',
-                margin: '0 auto',
-                justifyContent: 'flex-start',
-                width: '100%'
-        }}>
+        <div onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onMouseMove={handleMouseMove}
+            style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'flex-start', gap: '10px', width: '100%' }}>
             
-            {/* 左側*/}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/*下書き編集・画像インポート*/}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '10px', border: '2px solid var(--border-color)', borderRadius: '8px' }}>
-                    {/* Import & Refresh */}
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
-                        <label style={{ cursor: 'pointer', padding: '8px 15px', border: '4px solid var(--border-color)', borderRadius: '100vh', backgroundColor: 'white', fontSize: '12px', fontWeight: 'bold' }}>
-                            import data<input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                        </label>
-                        <button onClick={handleRefreshConversion} disabled={!backgroundImage} style={{ cursor: backgroundImage ? 'pointer' : 'not-allowed', width: '35px', height: '35px', border: '4px solid var(--border-color)', borderRadius: '50%', backgroundColor: 'white', opacity: backgroundImage ? 1 : 0.4 }}>
-                            <i className="bi bi-arrow-clockwise"></i>
-                        </button>
+            {/* 左側：サイドバー */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '260px' }}>
+                <FolderUI 
+                currentTab={activeTab} 
+                setCurrentTab={setActiveTab} 
+                tabs={SIDE_TABS}
+                isSmall
+                >
+                    <div style={{ 
+                            padding: '15px 0', 
+                            height: '180px', 
+                            minHeight: '180px', 
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'flex-start'
+                    }}>
+                        {activeTab === 'data' ? (
+                            /*  下書き管理タブ  */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'center' }}>
+                                    <label style={{ cursor: 'pointer', padding: '8px 15px', border: '3px solid var(--border-color)', borderRadius: '100vh', backgroundColor: 'white', fontSize: '12px', fontWeight: 'bold' }}>
+                                        import<input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+                                    </label>
+                                    <button onClick={handleRefreshConversion} disabled={!backgroundImage} style={circleBtnStyle(!!backgroundImage)}>
+                                        <i className="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 'bold' }}>下書き透明度</div>
+                                    <input type="range" min="0" max="1" step="0.05" value={bgOpacity} onChange={(e) => setBgOpacity(Number(e.target.value))} style={{ accentColor: 'var(--border-color)' }} />
+                                </div>
+                                <button onClick={() => setMode(prev => prev === 'draft' ? 'pen' : 'draft')} style={toolToggleStyle(mode === 'draft')}>
+                                    <i className="bi bi-arrows-move"></i> {mode === 'draft' ? '移動中' : '下書きを移動'}
+                                </button>
+                                <button onClick={() => setBgOffset({x:0, y:0})} style={{ fontSize: '10px', padding: '5px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px', backgroundColor: '#f9f9f9' }}>位置リセット</button>
+                            </div>
+                        ) : (
+                            /*  ゲージ設定タブ  */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>
+                                    基準ゲージ (10cmあたり)
+                                </div>
+                                
+                                <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexDirection: 'column' }}>
+                                    <div style={{ fontSize: '11px' }}>
+                                        横: <input 
+                                            type="number" 
+                                            placeholder="--"
+                                            value={gauge.stitches || ''} 
+                                            onChange={(e) => setGauge({...gauge, stitches: e.target.value === '' ? '' : Number(e.target.value)})} 
+                                            style={numInputStyle} 
+                                        /> 目
+                                    </div>
+                                    <div style={{ fontSize: '11px' }}>
+                                        縦: <input 
+                                            type="number" 
+                                            placeholder="--"
+                                            value={gauge.rows || ''} 
+                                            onChange={(e) => setGauge({...gauge, rows: e.target.value === '' ? '' : Number(e.target.value)})} 
+                                            style={numInputStyle} 
+                                        /> 段
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {/* 透明度設定 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '10px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 'bold' }}>下書き透明度</div>
-                        <input type="range" min="0" max="1" step="0.05" value={bgOpacity} onChange={(e) => setBgOpacity(Number(e.target.value))} style={{ accentColor: 'var(--border-color)' }} />
-                    </div>
-                    {/* 下書き移動モードボタン */}
-                    <button onClick={() => setMode(mode === 'draft' ? 'pen' : 'draft')} style={{ flex: 1, height: '30px', backgroundColor: mode === 'draft' ? 'var(--border-color)' : 'white', color: mode === 'draft' ? 'white' : 'black' }}>
-                        <i className="bi bi-arrows-move"></i>
-                    </button>
-                    {/* 下書きの位置だけを初期化 */}
-                    <button onClick={() => setBgOffset({x:0, y:0})} style={{ fontSize: '9px', marginTop: '5px', cursor: 'pointer' }}>下書き位置リセット</button>
-                </div>
-
+                </FolderUI>
                 {/* SIZE設定 */}
                 <div style={{ padding: '10px', border: 'none', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <div style={{ display: 'flex', gap: '5px' }}>
@@ -128,13 +191,71 @@ export const Editor = ({
                     </div>
                 </div>
 
-                {/* モード切り替え */}
-                <div style={{ display: 'flex', gap: '5px', padding: '10px', border: '2px solid var(--border-color)', borderRadius: '8px' }}>
-                    <button onClick={() => setMode('pen')} style={{ flex: 1, height: '30px', backgroundColor: mode === 'pen' ? 'var(--border-color)' : 'white', color: mode === 'pen' ? 'white' : 'black' }}><i className="bi bi-pencil-fill"></i></button>
-                    <button onClick={() => setMode('hand')} style={{ flex: 1, height: '30px', backgroundColor: mode === 'hand' ? 'var(--border-color)' : 'white', color: mode === 'hand' ? 'white' : 'black' }}><i className="bi bi-hand-index-thumb-fill"></i></button>
-                </div>
+                {/* 仕上がり予想サイズ & 毛糸量予想表示 */}
+                {typeof gauge.stitches === 'number' && gauge.stitches > 0 ? (
+                    <div style={{ 
+                        marginTop: '10px', padding: '10px 12px',
+                        backgroundColor: 'var(--folder-bg)', border: '2px dashed var(--border-color)',
+                        borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px'
+                    }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '10px', color: '#666' }}>仕上がり予想</div>
+                            <div style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--border-color)' }}>
+                                {((inputSize.col / gauge.stitches) * 10).toFixed(1)}cm × 
+                                {typeof gauge.rows === 'number' && gauge.rows > 0 
+                                    ? ((inputSize.row / gauge.rows) * 10).toFixed(1) 
+                                    : '--'}cm
+                            </div>
+                        </div>
 
-            </div>
+                        <div style={{ height: '1px', backgroundColor: 'var(--border-color)', opacity: 0.2 }}></div>
+
+                        <div>
+                            <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>必要毛糸量（予想）</div>
+                            {(() => {
+                                const counts = getColorCounts();
+                                const totalStitches = Object.values(counts).reduce((a, b) => a + b, 0);
+                                const totalLengthM = (totalStitches * (gauge.yarnPerStitch || 0)) / 100;
+
+                                return (
+                                    <>
+                                        <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
+                                            Total: {totalLengthM.toFixed(1)} m
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto' }}>
+                                            {Object.entries(counts).map(([id, count]) => {
+                                                const colorID = Number(id);
+                                                const lengthM = (count * (gauge.yarnPerStitch || 0)) / 100;
+                                                return (
+                                                    <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <div style={{ width: '10px', height: '10px', backgroundColor: palette[colorID], border: '1px solid #ccc' }}></div>
+                                                            <span style={{ fontFamily: 'monospace' }}>{palette[colorID]}</span>
+                                                        </div>
+                                                        <span style={{ fontWeight: 'bold' }}>{lengthM.toFixed(1)} m</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                        
+                        <div style={{ fontSize: '9px', color: '#888', textAlign: 'right', marginTop: '4px' }}>
+                            1目 ≈ <input 
+                                type="number" 
+                                step="0.1"
+                                value={gauge.yarnPerStitch} 
+                                onChange={(e) => setGauge({...gauge, yarnPerStitch: Number(e.target.value)})}
+                                style={{ width: '30px', border: 'none', background: 'none', borderBottom: '1px solid #ccc', fontSize: '10px', textAlign: 'center' }} 
+                            /> cmで計算
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ height: '45px', marginTop: '5px' }}></div>
+                )}
+            </div> {/* 左側サイドバーの閉じタグ */}
 
             {/* 中央*/}
             <div onMouseDown={() => (mode === 'hand' || mode === 'draft') && setIsPanning(true)}
@@ -152,6 +273,16 @@ export const Editor = ({
                     display: 'flex', gap: '10px',flexDirection: 'column',justifyContent: 'center' }}>
                     <button onClick={() => setZoom(Math.min(zoom + 0.1, 3.0))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-in"></i></button>
                     <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.5))} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-zoom-out"></i></button>
+
+                    <button onClick={() => setMode(prev => prev === 'hand' ? 'pen' : 'hand')} 
+                        style={{ 
+                            width: '30px', height: '30px', borderRadius: '50%',
+                            backgroundColor: mode === 'hand' ? 'var(--border-color)' : 'white', 
+                            color: mode === 'hand' ? 'white' : 'black' 
+                        }}
+                    >
+                        <i className="bi bi-hand-index-thumb-fill"></i>
+                    </button>
                     <button onClick={() => { setOffset({x:0, y:0}); setZoom(1); }} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-arrows-fullscreen"></i></button>
                 </div>
                 {/* 実際のキャンバス（グリッドエリア） */}

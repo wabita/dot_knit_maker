@@ -159,10 +159,10 @@ export const Viewer = ({ grid, palette }: ViewerProps) => {
                 </div>
 
                 <div onClick={toggleDirection} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px', cursor: 'pointer',justifyContent: 'center', }}>
-                    <div style={{ border: '2px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', backgroundColor: isRightToLeft ? '#ff7675' : '#74b9ff', color: 'white' }}>
+                    <div style={{ border: 'none', padding: '2px 8px', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', backgroundColor: isRightToLeft ? '#ff7675' : '#74b9ff', color: 'white' }}>
                         {isRightToLeft ? '右' : '左'}
                     </div>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>からみて編む</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>からみて...</span>
                 </div>
 
                 <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '12px', border: '4px solid var(--border-color)', borderRadius: '12px', backgroundColor: 'white' }}>

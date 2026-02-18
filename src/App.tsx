@@ -1,9 +1,17 @@
-import { useState, useCallback } from 'react';
-//import { get, set } from 'idb-keyval';
+import { useState, useCallback,useEffect } from 'react';
+import { get, set } from 'idb-keyval';
 import { FolderUI } from './components/FolderUI';
 import { Editor } from './components/Editor';
 
 import { Viewer } from './components/Viewer';
+
+type MainTab = 'edit' | 'view';
+
+// 2. タブのリスト（ラベルと値のセット）を定義
+const MAIN_TABS: { label: string; value: MainTab }[] = [
+  { label: 'へんしゅう', value: 'edit' },
+  { label: 'さくせい', value: 'view' },
+];
 
 type GridSize = {
     row: number;
@@ -30,6 +38,42 @@ function App() {
   const [lastPos, setLastPos] = useState<{ i: number, j: number } | null>(null);
   const [zoom, setZoom] = useState(1.0);
   const [bgOffset, setBgOffset] = useState({ x: 0, y: 0 });
+
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadSavedData() {
+      try {
+        const savedGrid = await get('dot-knit-grid');
+        const savedPalette = await get('dot-knit-palette');
+        const savedSize = await get('dot-knit-size');
+
+        if (savedGrid) setGrid(savedGrid);
+        if (savedPalette) setPalette(savedPalette);
+        if (savedSize) setGridSize(savedSize);
+        
+        // 読み込んだデータを履歴の最初にも入れておく（Undoできるように）
+        if (savedGrid && savedSize) {
+          setHistory([{ grid: savedGrid, size: savedSize }]);
+        }
+      } catch (e) {
+        console.error("Load failed", e);
+      } finally {
+        setHasLoaded(true); //読み込み（成否に関わらず）が終わったらフラグを立てる
+      }
+    }
+    loadSavedData();
+  }, []);
+
+  // 【保存】
+  useEffect(() => {
+    // 読み込みが完了するまでは絶対に保存させない
+    if (!hasLoaded) return;
+
+    set('dot-knit-grid', grid);
+    set('dot-knit-palette', palette);
+    set('dot-knit-size', gridSize);
+  }, [grid, palette, gridSize, hasLoaded]);
 
 
 
@@ -235,7 +279,7 @@ function App() {
 
   return (
 
-    <FolderUI currentTab={activeTab} setCurrentTab={setActiveTab}>
+    <FolderUI currentTab={activeTab} setCurrentTab={setActiveTab } tabs={MAIN_TABS}>
       
       <div style={{ textAlign: 'center', marginTop: '50px' }}>
         {activeTab === 'edit' ? (
