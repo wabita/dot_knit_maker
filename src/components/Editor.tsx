@@ -100,26 +100,35 @@ export const Editor = ({
     const [activeTab, setActiveTab] = useState<'data' | 'size'> ('data');
     const [isResizing, setIsResizing] = useState(false);//サイズ変更中かどうか
 
+    const [lastPointerPos, setLastPointerPos] = useState({ x: 0, y: 0 });
+
     useEffect(() => {
         setInputSize(gridSize);
     }, [gridSize]);
 
     // マウス移動時の処理を拡張
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.PointerEvent) => {
         if (!isPanning) return;
 
+        // 現在の位置と直前の位置の差分を計算
+        const deltaX = e.clientX - lastPointerPos.x;
+        const deltaY = e.clientY - lastPointerPos.y;
+
         if (mode === 'hand') {
-            setOffset(prev => ({ x: prev.x + e.movementX, y: prev.y + e.movementY }));
+            setOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
         } else if (mode === 'draft') {
             if (isResizing) {
-                // リサイズ処理：右に動かせば拡大
-                const delta = e.movementX * 0.005; 
-                setBgScale(Math.max(0.1, bgScale + delta));
+                // 右に動かせば拡大（iPadでも反応するように調整）
+                const resizeDelta = deltaX * 0.005; 
+                setBgScale(Math.max(0.1, bgScale + resizeDelta));
             } else {
                 // 移動処理
-                setBgOffset({ x: bgOffset.x + e.movementX, y: bgOffset.y + e.movementY });
+                setBgOffset({ x: bgOffset.x + deltaX, y: bgOffset.y + deltaY });
             }
         }
+        
+        // 現在の位置を保存
+        setLastPointerPos({ x: e.clientX, y: e.clientY });
     };
 
     // 計算用ステート（ゲージ計算など）
@@ -167,8 +176,19 @@ export const Editor = ({
     
 
     return (
-        <div onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onMouseMove={handleMouseMove}
-            style={{ display: 'inline-flex', flexDirection: 'row', alignItems: 'flex-start', gap: '10px', width: '100%' }}>
+        <div 
+            onPointerUp={stopDrawing} 
+            onPointerLeave={stopDrawing} 
+            onPointerMove={handlePointerMove}
+            style={{ 
+                touchAction: 'none', // iPadのブラウザによるスクロール干渉を防ぐ
+                display: 'inline-flex', 
+                flexDirection: 'row', 
+                alignItems: 'flex-start', 
+                gap: '10px', 
+                width: '100%' 
+            }}
+        >
             
             {/* 左側：サイドバー */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '260px' }}>
@@ -399,10 +419,12 @@ export const Editor = ({
                                         {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(pos => (
                                             <div
                                                 key={pos}
-                                                onMouseDown={(e) => {
+                                                onPointerDown={(e) => {
                                                     e.stopPropagation();
+                                                    e.currentTarget.setPointerCapture(e.pointerId); // ★ 指が離れても追跡を継続
                                                     setIsResizing(true);
-                                                    setIsPanning(true); // リサイズ中もPanning状態を利用
+                                                    setIsPanning(true);
+                                                    setLastPointerPos({ x: e.clientX, y: e.clientY });
                                                 }}
                                                 style={{
                                                     position: 'absolute',
