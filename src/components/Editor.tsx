@@ -181,7 +181,7 @@ export const Editor = ({
             onPointerLeave={stopDrawing} 
             onPointerMove={handlePointerMove}
             style={{ 
-                touchAction: 'none', // iPadのブラウザによるスクロール干渉を防ぐ
+                touchAction: 'none',
                 display: 'inline-flex', 
                 flexDirection: 'row', 
                 alignItems: 'flex-start', 
