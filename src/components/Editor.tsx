@@ -106,9 +106,16 @@ export const Editor = ({
         setInputSize(gridSize);
     }, [gridSize]);
 
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (e.cancelable) e.preventDefault();
+        
+        setIsPanning(true);
+        setLastPointerPos({ x: e.clientX, y: e.clientY });
+    };
     // マウス移動時の処理を拡張
     const handlePointerMove = (e: React.PointerEvent) => {
         if (!isPanning) return;
+        if (e.cancelable) e.preventDefault();
 
         // 現在の位置と直前の位置の差分を計算
         const deltaX = e.clientX - lastPointerPos.x;
@@ -181,12 +188,12 @@ export const Editor = ({
             onPointerLeave={stopDrawing} 
             onPointerMove={handlePointerMove}
             style={{ 
-                touchAction: 'none',
+                touchAction: 'none', 
+                userSelect: 'none',          // テキスト選択を禁止
+                WebkitUserSelect: 'none',    // Safari (iPad) 用
+                WebkitTouchCallout: 'none',  // 画像長押しのメニューを禁止
                 display: 'inline-flex', 
-                flexDirection: 'row', 
-                alignItems: 'flex-start', 
-                gap: '10px', 
-                width: '100%' 
+                // ...既存のスタイル
             }}
         >
             
@@ -337,15 +344,24 @@ export const Editor = ({
             </div> {/* 左側サイドバーの閉じタグ */}
 
             {/* 中央*/}
-            <div onMouseDown={() => (mode === 'hand' || mode === 'draft') && setIsPanning(true)}
-                 onWheel={handleWheel}
-                 style={{
-                    display: 'flex', flexDirection: 'column', width: '400px', height: '400px',
-                    flexShrink: 0, alignItems: 'center', justifyContent: 'center', position: 'relative',
-                    overflow: 'hidden', border: 'none',
-
-                    cursor: mode === 'hand' ? (isPanning ? 'grabbing' : 'grab') : mode === 'draft' ? 'move' : 'crosshair'
-                }}>
+            <div 
+                onPointerDown={handlePointerDown} // ★ Pointerに変更して関数を呼ぶ
+                onWheel={handleWheel}
+                style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    width: '400px', 
+                    height: '400px',
+                    flexShrink: 0, 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    position: 'relative',
+                    overflow: 'hidden', 
+                    border: 'none',
+                    cursor: mode === 'hand' ? (isPanning ? 'grabbing' : 'grab') : mode === 'draft' ? 'move' : 'crosshair',
+                    touchAction: 'none' // ★ iPadでのスクロールや「青い選択」を防ぐ
+                }}
+            >
                 {/*拡大縮小・配置リセット */}
                 <div style={{ 
                     position: 'absolute', top: '10px', left: '10px', zIndex: 10,
@@ -402,6 +418,15 @@ export const Editor = ({
                             }}>
                                 <img 
                                     src={backgroundImage}
+                                    onPointerDown={(e) => {
+                                        if (mode === 'draft') {
+                                            e.stopPropagation();
+                                            // 画像自体を掴んで移動開始
+                                            setIsPanning(true); 
+                                            setIsResizing(false);
+                                            setLastPointerPos({ x: e.clientX, y: e.clientY });
+                                        }
+                                    }}
                                     alt="下書き"
                                     style={{
                                         width: 'auto',
@@ -474,7 +499,7 @@ export const Editor = ({
                                         backgroundColor: palette[colorID] === '#FFFFFF' && backgroundImage 
                                             ? 'rgba(255, 255, 255, 0.2)' 
                                             : palette[colorID],
-                                        // ★ タッチ操作で余計な挙動をさせない
+                                        //タッチ操作で余計な挙動をさせない
                                         touchAction: 'none', 
                                     }}
                                 />
