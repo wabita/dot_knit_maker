@@ -454,14 +454,17 @@ export const Editor = ({
                             {row.map((colorID, j) => (
                                 <div
                                     key={`${i}-${j}`}
-                                    onMouseDown={() => {
+                                    onPointerDown={() => {
                                         if (mode === 'pen') {
                                             setIsDrawing(true);
+                                            // 描き始めの座標をセット（これがないと前の線と繋がっちゃうことがあります）
+                                            setLastPos({ i, j }); 
                                             paintCells(i, j);
                                         }
                                     }}
-                                    onMouseEnter={() => {
-                                        if (isDrawing && mode === 'pen') {
+                                    onPointerMove={(e) => {
+                                        // e.buttons === 1 は「押したまま動いている」という印
+                                        if (isDrawing && mode === 'pen' && e.buttons === 1) {
                                             paintCells(i, j);
                                         }
                                     }}
@@ -471,6 +474,8 @@ export const Editor = ({
                                         backgroundColor: palette[colorID] === '#FFFFFF' && backgroundImage 
                                             ? 'rgba(255, 255, 255, 0.2)' 
                                             : palette[colorID],
+                                        // ★ タッチ操作で余計な挙動をさせない
+                                        touchAction: 'none', 
                                     }}
                                 />
                             ))}
