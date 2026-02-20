@@ -428,7 +428,9 @@ export const Editor = ({
                                     src={backgroundImage}
                                     onPointerDown={(e) => {
                                         if (mode === 'pen') {
+                                            e.currentTarget.setPointerCapture(e.pointerId);
                                             setIsDrawing(true);
+                                            
                                             const rect = e.currentTarget.getBoundingClientRect();
                                             const col = Math.floor(((e.clientX - rect.left) / rect.width) * gridSize.col);
                                             const row = Math.floor(((e.clientY - rect.top) / rect.height) * gridSize.row);
