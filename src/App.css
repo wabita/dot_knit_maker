@@ -40,3 +40,21 @@
 .read-the-docs {
   color: #888;
 }
+
+#root {
+  /* テキスト選択を完全に禁止 */
+  -webkit-user-select: none;
+  user-select: none;
+  
+  /* タップした時の青い枠（ハイライト）を消す */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* 長押しメニュー（コピーとか）を禁止 */
+  -webkit-touch-callout: none;
+}
+
+/* 入力フォーム（数字を入れるところ）だけは触れるようにしておく */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}

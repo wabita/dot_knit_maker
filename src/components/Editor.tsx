@@ -114,10 +114,9 @@ export const Editor = ({
     };
     // マウス移動時の処理を拡張
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isPanning) return;
+        if (!isPanning && !isDrawing) return;
         if (e.cancelable) e.preventDefault();
 
-        // 現在の位置と直前の位置の差分を計算
         const deltaX = e.clientX - lastPointerPos.x;
         const deltaY = e.clientY - lastPointerPos.y;
 
@@ -125,19 +124,28 @@ export const Editor = ({
             setOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
         } else if (mode === 'draft') {
             if (isResizing) {
-                // 右に動かせば拡大（iPadでも反応するように調整）
                 const resizeDelta = deltaX * 0.005; 
                 setBgScale(Math.max(0.1, bgScale + resizeDelta));
             } else {
-                // 移動処理
                 setBgOffset({ x: bgOffset.x + deltaX, y: bgOffset.y + deltaY });
+            }
+        } else if (mode === 'pen' && isDrawing) {
+            // ★ ここが「スイー」の核心：指の座標から何行目の何列目か計算する
+            const container = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - container.left;
+            const y = e.clientY - container.top;
+            
+            // コンテナ内での比率から行列を算出
+            const col = Math.floor((x / container.width) * gridSize.col);
+            const row = Math.floor((y / container.height) * gridSize.row);
+
+            if (row >= 0 && row < gridSize.row && col >= 0 && col < gridSize.col) {
+                paintCells(row, col);
             }
         }
         
-        // 現在の位置を保存
         setLastPointerPos({ x: e.clientX, y: e.clientY });
     };
-
     // 計算用ステート（ゲージ計算など）
     const [gauge, setGauge] = useState<{
         stitches: number | ''; 
@@ -419,12 +427,13 @@ export const Editor = ({
                                 <img 
                                     src={backgroundImage}
                                     onPointerDown={(e) => {
-                                        if (mode === 'draft') {
-                                            e.stopPropagation();
-                                            // 画像自体を掴んで移動開始
-                                            setIsPanning(true); 
-                                            setIsResizing(false);
-                                            setLastPointerPos({ x: e.clientX, y: e.clientY });
+                                        if (mode === 'pen') {
+                                            setIsDrawing(true);
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const col = Math.floor(((e.clientX - rect.left) / rect.width) * gridSize.col);
+                                            const row = Math.floor(((e.clientY - rect.top) / rect.height) * gridSize.row);
+                                            setLastPos({ i: row, j: col });
+                                            paintCells(row, col);
                                         }
                                     }}
                                     alt="下書き"
@@ -438,6 +447,7 @@ export const Editor = ({
                                         userSelect: 'none',    // 画像自体の選択を防ぐ
                                         pointerEvents: 'none', // 画像自体のドラッグを防ぐ
                                     }}
+                                    onContextMenu={(e) => e.preventDefault()}
                                 />
                                 {mode === 'draft' && (
                                     <>
@@ -479,20 +489,6 @@ export const Editor = ({
                             {row.map((colorID, j) => (
                                 <div
                                     key={`${i}-${j}`}
-                                    onPointerDown={() => {
-                                        if (mode === 'pen') {
-                                            setIsDrawing(true);
-                                            // 描き始めの座標をセット（これがないと前の線と繋がっちゃうことがあります）
-                                            setLastPos({ i, j }); 
-                                            paintCells(i, j);
-                                        }
-                                    }}
-                                    onPointerMove={(e) => {
-                                        // e.buttons === 1 は「押したまま動いている」という印
-                                        if (isDrawing && mode === 'pen' && e.buttons === 1) {
-                                            paintCells(i, j);
-                                        }
-                                    }}
                                     style={{
                                         flex: 1, width: '100%', height: '100%',
                                         border: '0.5px solid rgba(0, 0, 0, 0.15)',

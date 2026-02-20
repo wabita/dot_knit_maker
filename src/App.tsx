@@ -335,56 +335,52 @@ function App() {
   };
 
   const saveCurrentProject = async (isOverwrite: boolean = false) => {
-    const name = window.prompt("作品のなまえを入力してください", "あたらしい作品");
-    if (!name) return;
+    // ★ 修正1: 関数開始の '{' が抜けていたのを修正
+    // ★ 修正2: サムネイル生成ロジックを完全に削除
 
-    const thumbCanvas = document.createElement('canvas');
-    const cellSize = 1; // プレビュー用の1マスのサイズ
-    thumbCanvas.width = gridSize.col * cellSize;
-    thumbCanvas.height = gridSize.row * cellSize;
-    const tCtx = thumbCanvas.getContext('2d');
-    if (tCtx) {
-        grid.forEach((row, i) => {
-            row.forEach((colorID, j) => {
-                tCtx.fillStyle = palette[colorID];
-                tCtx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-            });
-        });
-    }
-    const thumbnailData = thumbCanvas.toDataURL('image/webp', 0.5);
-    // 2. 分岐処理
     if (isOverwrite && currentProjectId) {
-      // --- 上書き保存 ---
-      const updatedProjects = projects.map(p => 
-        p.id === currentProjectId 
-          ? { ...p, grid, size: gridSize, palette, thumbnail: thumbnailData, updatedAt: Date.now() } 
-          : p
-      );
-      setProjects(updatedProjects);
-      await set('dot-knit-projects', updatedProjects);
-      alert("上書き保存しました！");
+        // --- 上書き保存 ---
+        const updatedProjects = projects.map(p => 
+            p.id === currentProjectId 
+                ? { 
+                    ...p, 
+                    grid, 
+                    size: gridSize, 
+                    palette, 
+                    // thumbnailData は使わないので削除
+                    updatedAt: Date.now() 
+                  } 
+                : p
+        );
+        setProjects(updatedProjects);
+        await set('dot-knit-projects', updatedProjects);
+        alert("上書き保存しました！");
     } else {
-      // --- 新規保存（または別名保存） ---
-      const name = window.prompt("作品のなまえを入力してください", isOverwrite ? "コピー" : "あたらしい作品");
-      if (!name) return;
+        // --- 新規保存（または別名保存） ---
+        const name = window.prompt(
+            "作品のなまえを入力してください", 
+            isOverwrite ? "コピー" : "あたらしい作品"
+        );
+        
+        if (!name) return;
 
-      const newId = Date.now().toString();
-      const newProject: Project = {
-        id: newId,
-        name: name,
-        grid: grid,
-        size: gridSize,
-        palette: palette,
-        updatedAt: Date.now(),
-        thumbnail: thumbnailData,
-        isFavorite: false
-      };
+        const newId = Date.now().toString();
+        const newProject: Project = {
+            id: newId,
+            name: name,
+            grid: grid,
+            size: gridSize,
+            palette: palette,
+            updatedAt: Date.now(),
+            // thumbnail は含めない
+            isFavorite: false
+        };
 
-      const updatedProjects = [...projects, newProject];
-      setProjects(updatedProjects);
-      setCurrentProjectId(newId); // 保存後はこの作品の編集モードにする
-      await set('dot-knit-projects', updatedProjects);
-      alert("新しく保存しました！");
+        const updatedProjects = [...projects, newProject];
+        setProjects(updatedProjects);
+        setCurrentProjectId(newId);
+        await set('dot-knit-projects', updatedProjects);
+        alert("新しく保存しました！");
     }
   };
 
