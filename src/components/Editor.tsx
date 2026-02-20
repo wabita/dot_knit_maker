@@ -1,4 +1,4 @@
-import { useState ,useEffect} from 'react';
+import { useState ,useEffect, useRef} from 'react';
 import { FolderUI } from './FolderUI';
 
 type SideTab = 'data' | 'size';
@@ -89,7 +89,7 @@ export const Editor = ({
     UpdataPaletteID, addColor, handleImageUpload ,gridSize, resizeGrid,backgroundImage,
     bgOpacity, setBgOpacity, penSize, setPenSize, paintCells, setLastPos, zoom, setZoom,
     handleRefreshConversion, clearGrid, bgOffset, setBgOffset, undo, redo, canUndo, canRedo, endAction,
-    bgScale, setBgScale, saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
+    bgScale, saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
 }: EditorProps) => {
     const [inputSize, setInputSize] = useState(gridSize);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -101,52 +101,64 @@ export const Editor = ({
     const [isResizing, setIsResizing] = useState(false);//サイズ変更中かどうか
 
     const [lastPointerPos, setLastPointerPos] = useState({ x: 0, y: 0 });
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setInputSize(gridSize);
     }, [gridSize]);
 
-    const handlePointerDown = (e: React.PointerEvent) => {
+    const handleGridPointerDown = (e: React.PointerEvent) => {
+        // すべてのイベントをこのRef基準のdivで受け取る
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
         if (e.cancelable) e.preventDefault();
         
+        // 1. ペンモードの処理
+        if (mode === 'pen') {
+            e.currentTarget.setPointerCapture(e.pointerId); // 追跡開始
+            setIsDrawing(true);
+            
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const col = Math.floor((x / rect.width) * gridSize.col);
+            const row = Math.floor((y / rect.height) * gridSize.row);
+            
+            setLastPos({ i: row, j: col });
+            paintCells(row, col);
+        } 
+        
+        // 2. 移動系（手のひら or 下書き移動）の準備
         setIsPanning(true);
         setLastPointerPos({ x: e.clientX, y: e.clientY });
     };
     // マウス移動時の処理を拡張
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isPanning && !isDrawing) return;
-        if (e.cancelable) e.preventDefault();
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect || (!isPanning && !isDrawing)) return;
 
         const deltaX = e.clientX - lastPointerPos.x;
         const deltaY = e.clientY - lastPointerPos.y;
 
         if (mode === 'hand') {
             setOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
-        } else if (mode === 'draft') {
-            if (isResizing) {
-                const resizeDelta = deltaX * 0.005; 
-                setBgScale(Math.max(0.1, bgScale + resizeDelta));
-            } else {
-                setBgOffset({ x: bgOffset.x + deltaX, y: bgOffset.y + deltaY });
-            }
+        } else if (mode === 'draft' && isPanning && !isResizing) {
+            // 下書き移動（リサイズ中でない時）
+            setBgOffset({ x: bgOffset.x + deltaX, y: bgOffset.y + deltaY });
         } else if (mode === 'pen' && isDrawing) {
-            // ★ ここが「スイー」の核心：指の座標から何行目の何列目か計算する
-            const container = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - container.left;
-            const y = e.clientY - container.top;
-            
-            // コンテナ内での比率から行列を算出
-            const col = Math.floor((x / container.width) * gridSize.col);
-            const row = Math.floor((y / container.height) * gridSize.row);
+            // Ref を使って座標を特定
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const col = Math.floor((x / rect.width) * gridSize.col);
+            const row = Math.floor((y / rect.height) * gridSize.row);
 
             if (row >= 0 && row < gridSize.row && col >= 0 && col < gridSize.col) {
                 paintCells(row, col);
             }
         }
-        
         setLastPointerPos({ x: e.clientX, y: e.clientY });
     };
-    // 計算用ステート（ゲージ計算など）
+        // 計算用ステート（ゲージ計算など）
     const [gauge, setGauge] = useState<{
         stitches: number | ''; 
         rows: number | '';
@@ -353,7 +365,6 @@ export const Editor = ({
 
             {/* 中央*/}
             <div 
-                onPointerDown={handlePointerDown} // ★ Pointerに変更して関数を呼ぶ
                 onWheel={handleWheel}
                 style={{
                     display: 'flex', 
@@ -389,7 +400,9 @@ export const Editor = ({
                     <button onClick={() => { setOffset({x:0, y:0}); setZoom(1); }} style={{ width: '30px', height: '30px', borderRadius: '50%' }}><i className="bi bi-arrows-fullscreen"></i></button>
                 </div>
                 {/* 実際のキャンバス（グリッドエリア） */}
-                <div style={{
+                <div ref={containerRef} 
+                    onPointerDown={handleGridPointerDown}
+                    style={{
                     width: gridSize.col >= gridSize.row ? '100%' : 'auto',
                     height: gridSize.row > gridSize.col ? '100%' : 'auto',
                     aspectRatio: `${gridSize.col} / ${gridSize.row}`,
@@ -426,18 +439,6 @@ export const Editor = ({
                             }}>
                                 <img 
                                     src={backgroundImage}
-                                    onPointerDown={(e) => {
-                                        if (mode === 'pen') {
-                                            e.currentTarget.setPointerCapture(e.pointerId);
-                                            setIsDrawing(true);
-                                            
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            const col = Math.floor(((e.clientX - rect.left) / rect.width) * gridSize.col);
-                                            const row = Math.floor(((e.clientY - rect.top) / rect.height) * gridSize.row);
-                                            setLastPos({ i: row, j: col });
-                                            paintCells(row, col);
-                                        }
-                                    }}
                                     alt="下書き"
                                     style={{
                                         width: 'auto',
