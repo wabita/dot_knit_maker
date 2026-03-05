@@ -2,7 +2,6 @@ import { useState ,useEffect, useRef} from 'react';
 import { FolderUI } from './FolderUI';
 
 type SideTab = 'data' | 'size';
-
 const SIDE_TABS: { label: string; value: SideTab }[] = [
   { label: '下書き', value: 'data' },
   { label: 'サイズ', value: 'size' },
@@ -89,34 +88,34 @@ export const Editor = ({
     UpdataPaletteID, addColor, handleImageUpload ,gridSize, resizeGrid,backgroundImage,
     bgOpacity, setBgOpacity, penSize, setPenSize, paintCells, setLastPos, zoom, setZoom,
     handleRefreshConversion, clearGrid, bgOffset, setBgOffset, undo, redo, canUndo, canRedo, endAction,
-    bgScale, saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
+    bgScale, setBgScale,saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
 }: EditorProps) => {
-    const [inputSize, setInputSize] = useState(gridSize);
-    const [isDrawing, setIsDrawing] = useState(false);
-
+    const [inputSize, setInputSize] = useState(gridSize);//キャンバスサイズ
+    const [isDrawing, setIsDrawing] = useState(false);//描画中か
     const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [isPanning, setIsPanning] = useState(false); // 手のひらツール中か
+    const [isPanning, setIsPanning] = useState(false); // 手のひらツールか
     const [mode, setMode] = useState<'pen' | 'hand' | 'draft'>('pen'); // ツールモード
     const [activeTab, setActiveTab] = useState<'data' | 'size'> ('data');
     const [isResizing, setIsResizing] = useState(false);//サイズ変更中かどうか
 
     const [lastPointerPos, setLastPointerPos] = useState({ x: 0, y: 0 });
+    // 画面の要素に直接アクセスしたり、値だけを静かに保持するためのRef
     const containerRef = useRef<HTMLDivElement>(null);
+    // 前回の描画位置を記憶しておくためのRef
+    const lastDrawPosRef = useRef<{ row: number; col: number } | null>(null);   
 
     useEffect(() => {
         setInputSize(gridSize);
     }, [gridSize]);
 
+    // マウス移動時の処理を拡張
     const handleGridPointerDown = (e: React.PointerEvent) => {
-        // すべてのイベントをこのRef基準のdivで受け取る
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
-
         if (e.cancelable) e.preventDefault();
         
-        // 1. ペンモードの処理
         if (mode === 'pen') {
-            e.currentTarget.setPointerCapture(e.pointerId); // 追跡開始
+            e.currentTarget.setPointerCapture(e.pointerId);
             setIsDrawing(true);
             
             const x = e.clientX - rect.left;
@@ -124,15 +123,18 @@ export const Editor = ({
             const col = Math.floor((x / rect.width) * gridSize.col);
             const row = Math.floor((y / rect.height) * gridSize.row);
             
+            lastDrawPosRef.current = { row, col };
+
             setLastPos({ i: row, j: col });
             paintCells(row, col);
+            setIsDrawing(true);
         } 
-        
-        // 2. 移動系（手のひら or 下書き移動）の準備
-        setIsPanning(true);
+        else {
+            setIsPanning(true);
+        }
         setLastPointerPos({ x: e.clientX, y: e.clientY });
     };
-    // マウス移動時の処理を拡張
+
     const handlePointerMove = (e: React.PointerEvent) => {
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect || (!isPanning && !isDrawing)) return;
@@ -143,17 +145,38 @@ export const Editor = ({
         if (mode === 'hand') {
             setOffset(prev => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
         } else if (mode === 'draft' && isPanning && !isResizing) {
-            // 下書き移動（リサイズ中でない時）
             setBgOffset({ x: bgOffset.x + deltaX, y: bgOffset.y + deltaY });
+        } else if (mode === 'draft' && isResizing) {
+            // ★ ここを追加：下書きの拡大縮小処理
+            // マウスの横方向の移動量（deltaX）を使ってサイズを変えます
+            // 右に引っ張ると拡大、左に押し込むと縮小するシンプルな仕組みです
+            const scaleChange = deltaX * 0.005; 
+            
+            // サイズが0やマイナスになると見えなくなってしまうので、Math.maxで最低「0.1倍」までに制限します
+            setBgScale(Math.max(0.1, bgScale + scaleChange));
         } else if (mode === 'pen' && isDrawing) {
-            // Ref を使って座標を特定
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             const col = Math.floor((x / rect.width) * gridSize.col);
             const row = Math.floor((y / rect.height) * gridSize.row);
 
             if (row >= 0 && row < gridSize.row && col >= 0 && col < gridSize.col) {
-                paintCells(row, col);
+                // ★ 修正：Refから前回の座標を取得
+                const lastPos = lastDrawPosRef.current;
+                const lastRow = lastPos ? lastPos.row : row;
+                const lastCol = lastPos ? lastPos.col : col;
+
+                const dist = Math.max(Math.abs(row - lastRow), Math.abs(col - lastCol));
+                
+                for (let n = 0; n <= dist; n++) {
+                    const t = dist === 0 ? 0 : n / dist;
+                    const r = Math.round(lastRow + (row - lastRow) * t);
+                    const c = Math.round(lastCol + (col - lastCol) * t);
+                    paintCells(r, c);
+                }
+
+                // ★ 修正：Refを更新
+                lastDrawPosRef.current = { row, col };
             }
         }
         setLastPointerPos({ x: e.clientX, y: e.clientY });
@@ -186,8 +209,9 @@ export const Editor = ({
         }
         setIsDrawing(false);
         setIsPanning(false);
-        setIsResizing(false); // ★ ここを忘れずに！
+        setIsResizing(false);
         setLastPos(null);
+        lastDrawPosRef.current = null;
     };
 
     // ホイール操作で拡大縮小
