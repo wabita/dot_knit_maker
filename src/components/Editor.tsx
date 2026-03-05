@@ -236,13 +236,17 @@ export const Editor = ({
                 userSelect: 'none',          // テキスト選択を禁止
                 WebkitUserSelect: 'none',    // Safari (iPad) 用
                 WebkitTouchCallout: 'none',  // 画像長押しのメニューを禁止
-                display: 'inline-flex', 
-                // ...既存のスタイル
+                display: 'flex',
+                flexWrap: 'wrap',            // 画面が狭い時に下に折り返すs
+                justifyContent: 'center',    // 真ん中に寄せる
+                gap: '20px',                 // ブロック同士の隙間
+                maxWidth: '100%',            // 画面の幅をはみ出さないようにする
+                boxSizing: 'border-box',
             }}
         >
             
             {/* 左側：サイドバー */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '260px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', width: '180px' }}>
                 <FolderUI 
                 currentTab={activeTab} 
                 setCurrentTab={setActiveTab} 
