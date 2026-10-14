@@ -1,4 +1,3 @@
-
 html, body, #root {
   width: 100%;
   min-height: 100%;
@@ -13,24 +12,28 @@ input, textarea, select {
   user-select: text;
 }
 
-/* 編集画面: 横向きのPC・タブレットでは、設定／キャンバス／ツールを3列に保つ。 */
 .editor-layout {
   width: 100%;
+  max-width: 1560px;
   margin: 0 auto;
+  padding: 4px 0 20px;
+  align-items: start;
 }
 
 @media (min-width: 900px) and (orientation: landscape), (min-width: 1200px) {
   .editor-layout {
     display: grid !important;
-    grid-template-columns: 180px minmax(320px, 400px) minmax(130px, 160px);
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
     align-items: start;
     justify-content: center !important;
-    gap: 20px !important;
+    gap: clamp(14px, 1.5vw, 24px) !important;
   }
 
   .editor-sidebar,
   .editor-tools {
-    width: 100%;
+    width: 100% !important;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .editor-tools {
@@ -39,24 +42,68 @@ input, textarea, select {
 
   .editor-canvas {
     justify-self: center;
+    width: min(100%, 70vh, 760px) !important;
+    height: min(70vh, 760px) !important;
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
+    border-radius: 14px;
+    background: #fffaf7;
+    box-shadow: 0 10px 30px rgba(86, 47, 43, 0.12);
   }
 }
 
-/* 狭い幅では、操作の流れに沿って上から下へ並べる。 */
 @media (max-width: 899px) {
   .editor-layout {
     display: flex !important;
     flex-direction: column;
     align-items: center;
     flex-wrap: nowrap !important;
+    gap: 14px !important;
+    padding: 0 0 16px;
+  }
+
+  .editor-canvas {
+    width: min(calc(100vw - 40px), 620px) !important;
+    height: min(calc(100vw - 40px), 620px) !important;
+    border-radius: 12px;
+    background: #fffaf7;
+    box-shadow: 0 8px 22px rgba(86, 47, 43, 0.1);
   }
 
   .editor-sidebar,
   .editor-tools {
+    width: min(620px, calc(100vw - 32px)) !important;
     align-self: center !important;
+    box-sizing: border-box;
   }
 
   .editor-tools {
     margin-left: 0 !important;
   }
+}
+
+.editor-sidebar,
+.editor-tools {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid rgba(180, 91, 83, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 4px 14px rgba(86, 47, 43, 0.06);
+}
+
+.editor-sidebar > *,
+.editor-tools > * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.editor-tools button,
+.editor-tools input {
+  min-width: 0;
+}
+
+.editor-tools > div {
+  max-width: 100%;
 }

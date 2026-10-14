@@ -6,11 +6,11 @@
 
 :root {
   /* ラフ画っぽい色味の定義 */
-  --bg-color: #ffeedd;      /* 薄い肌色 */
-  --dot-color: #ff8888;     /* 水玉の赤 */
-  --folder-bg: #fff0f5;     /* フォルダの中身（薄ピンク） */
-  --border-color: #e85d5d;  /* 線の色（濃い赤） */
-  --text-color: #5a2d2d;    /* 文字色（焦げ茶） */
+  --bg-color: #fff9f4;
+  --dot-color: #e8b9a8;
+  --folder-bg: #fffdfb;
+  --border-color: #bd625b;
+  --text-color: #503a37;
 }
 
 body {
@@ -19,10 +19,17 @@ body {
   color: var(--text-color);
   
   background-color: var(--bg-color);
-  background-image: radial-gradient(var(--dot-color) 20%, transparent 20%);
+  background-image: radial-gradient(var(--dot-color) 13%, transparent 13%);
   background-position: 0 0;
-  background-size: 20px 20px; /* 水玉の間隔 */
+  background-size: 24px 24px;
   min-width: 320px;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 /* 3. ボタンを押した時の「ペコッ」となる動き */

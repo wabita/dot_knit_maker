@@ -51,6 +51,7 @@ type EditorProps = {
     setNowColorID: (id: number) => void;
     UpdataPaletteID: (id: number, newColor: string) => void;
     addColor: () => void;
+    deleteColor: (id: number) => void;
     handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
     gridSize: { row: number, col: number }; 
     resizeGrid: (newSize: { row: number, col: number }) => void;
@@ -85,7 +86,7 @@ type EditorProps = {
 
 export const Editor = ({ 
     grid, palette, nowColorID, setNowColorID, 
-    UpdataPaletteID, addColor, handleImageUpload ,gridSize, resizeGrid,backgroundImage,
+    UpdataPaletteID, addColor, deleteColor, handleImageUpload ,gridSize, resizeGrid,backgroundImage,
     bgOpacity, setBgOpacity, penSize, setPenSize, paintCells, setLastPos, zoom, setZoom,
     handleRefreshConversion, clearGrid, bgOffset, setBgOffset, undo, redo, canUndo, canRedo, endAction,
     bgScale, setBgScale,saveProject, isProjectLoaded, isFavorite, onDelete, onToggleFavorite
@@ -97,6 +98,8 @@ export const Editor = ({
     const [mode, setMode] = useState<'pen' | 'hand' | 'draft'>('pen'); // ツールモード
     const [activeTab, setActiveTab] = useState<'data' | 'size'> ('data');
     const [isResizing, setIsResizing] = useState(false);//サイズ変更中かどうか
+    const [showRequiredColorsDialog, setShowRequiredColorsDialog] = useState(false);
+    const [pendingDeleteColorID, setPendingDeleteColorID] = useState<number | null>(null);
 
     const [lastPointerPos, setLastPointerPos] = useState({ x: 0, y: 0 });
     // 画面の要素に直接アクセスしたり、値だけを静かに保持するためのRef
@@ -263,7 +266,8 @@ export const Editor = ({
                     <div style={{ 
                             padding: '15px 0', 
                             height: '180px', 
-                            width: '150px',
+                            width: '100%',
+                            maxWidth: '100%',
                             minHeight: '180px', 
                             boxSizing: 'border-box',
                             display: 'flex',
@@ -371,7 +375,7 @@ export const Editor = ({
                                                     <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                             <div style={{ width: '10px', height: '10px', backgroundColor: palette[colorID], border: '1px solid #ccc' }}></div>
-                                                            <span style={{ fontFamily: 'monospace' }}>{palette[colorID]}</span>
+                                                            <span style={{ fontFamily: 'DotFont' }}>{palette[colorID]}</span>
                                                         </div>
                                                         <span style={{ fontWeight: 'bold' }}>{lengthM.toFixed(1)} m</span>
                                                     </div>
@@ -658,7 +662,7 @@ export const Editor = ({
                     paddingBottom: '20px'
                 }}>
                     {palette.map((color, id) => (
-                        <div key={id} style={{ margin: '8px', display: 'flex' }}>
+                        <div key={id} style={{ margin: '8px', display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
                             <input
                                 type="color"
                                 value={color}
@@ -668,17 +672,39 @@ export const Editor = ({
                             <button
                                 onClick={() => setNowColorID(id)}
                                 style={{
-                                    fontFamily: 'monospace', 
+                                    fontFamily: 'DotFont',
                                     fontSize: '12px', 
                                     marginLeft: '5px', 
                                     border: 'none', 
                                     background: nowColorID === id ? 'var(--dot-color)' : '#fff',
                                     flexGrow: 1,
                                     padding: '5px',
-                                    width: '100px',
+                                    width: '0',
+                                    minWidth: 0,
                                 }}
                             >
                                 {color.toUpperCase()}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => palette.length <= 2 ? setShowRequiredColorsDialog(true) : setPendingDeleteColorID(id)}
+                                aria-label={`${color.toUpperCase()}を削除`}
+                                title="この色を削除"
+                                style={{
+                                    flex: '0 0 28px',
+                                    width: '28px',
+                                    height: '30px',
+                                    padding: 0,
+                                    border: '1px solid #e2b9b3',
+                                    borderRadius: '6px',
+                                    background: '#fff',
+                                    color: 'var(--border-color)',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                ×
                             </button>
                         </div>
                     ))} 
@@ -691,8 +717,8 @@ export const Editor = ({
                         color: 'var(--border-color)',
                         fontFamily: 'DotFont',
                         position: 'absolute', 
-                        right: '-10px', 
-                        bottom: '-10px', 
+                    right: '4px',
+                    bottom: '4px',
                         width: '50px', 
                         height: '35px', 
                         borderRadius: '20px', 
@@ -709,6 +735,159 @@ export const Editor = ({
                     +
                 </button>
             </div>
+
+            {showRequiredColorsDialog && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1000,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: '20px',
+                    background: 'rgba(42, 29, 27, 0.38)',
+                }}>
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="required-colors-title"
+                        style={{
+                            position: 'relative',
+                            width: 'min(360px, 100%)',
+                            boxSizing: 'border-box',
+                            padding: '28px 24px 24px',
+                            border: '3px solid var(--border-color)',
+                            borderRadius: '14px',
+                            background: 'var(--folder-bg)',
+                            boxShadow: '0 12px 36px rgba(42, 29, 27, 0.24)',
+                            textAlign: 'center',
+                        }}
+                    >
+                        <button
+                            type="button"
+                            aria-label="ダイアログを閉じる"
+                            onClick={() => setShowRequiredColorsDialog(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '8px',
+                                right: '8px',
+                                width: '30px',
+                                height: '30px',
+                                padding: 0,
+                                border: '1px solid rgba(189, 98, 91, 0.35)',
+                                borderRadius: '50%',
+                                background: '#fff',
+                                color: 'var(--text-color)',
+                                fontSize: '20px',
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            ×
+                        </button>
+                        <div id="required-colors-title" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
+                            この色は削除できません
+                        </div>
+                        <div style={{ fontSize: '13px', lineHeight: 1.7 }}>
+                            背景色と線の色を残すため、パレットには最低2色が必要です。
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {pendingDeleteColorID !== null && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 1000,
+                    display: 'grid',
+                    placeItems: 'center',
+                    padding: '20px',
+                    background: 'rgba(42, 29, 27, 0.38)',
+                }}>
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-color-title"
+                        style={{
+                            position: 'relative',
+                            width: 'min(360px, 100%)',
+                            boxSizing: 'border-box',
+                            padding: '28px 24px 24px',
+                            border: '3px solid var(--border-color)',
+                            borderRadius: '14px',
+                            background: 'var(--folder-bg)',
+                            boxShadow: '0 12px 36px rgba(42, 29, 27, 0.24)',
+                            textAlign: 'center',
+                        }}
+                    >
+                        <button
+                            type="button"
+                            aria-label="ダイアログを閉じる"
+                            onClick={() => setPendingDeleteColorID(null)}
+                            style={{
+                                position: 'absolute',
+                                top: '8px',
+                                right: '8px',
+                                width: '30px',
+                                height: '30px',
+                                padding: 0,
+                                border: '1px solid rgba(189, 98, 91, 0.35)',
+                                borderRadius: '50%',
+                                background: '#fff',
+                                color: 'var(--text-color)',
+                                fontSize: '20px',
+                                lineHeight: 1,
+                                cursor: 'pointer',
+                            }}
+                        >
+                            ×
+                        </button>
+                        <div id="delete-color-title" style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
+                            カラー {palette[pendingDeleteColorID]?.toUpperCase()} を削除しますか？
+                        </div>
+                        <div style={{ fontSize: '13px', lineHeight: 1.7, marginBottom: '20px' }}>
+                            この色で塗ったマスは、パレットの先頭色に置き換わります。
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setPendingDeleteColorID(null)}
+                                style={{
+                                    minWidth: '100px',
+                                    padding: '9px 14px',
+                                    border: '1px solid rgba(189, 98, 91, 0.45)',
+                                    borderRadius: '8px',
+                                    background: '#fff',
+                                    color: 'var(--text-color)',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    deleteColor(pendingDeleteColorID);
+                                    setPendingDeleteColorID(null);
+                                }}
+                                style={{
+                                    minWidth: '100px',
+                                    padding: '9px 14px',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    background: 'var(--border-color)',
+                                    color: '#fff',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                削除する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

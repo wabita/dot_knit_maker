@@ -40,8 +40,8 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [palette,setPalette] = useState(['#FFFFFF', '#000000']);
   const [nowColorID, setNowColorID] = useState(1);
-  const [history, setHistory] = useState<{grid: number[][], size: GridSize}[]>(() => [
-    { grid: makeGrid({ row: 70, col: 50 }), size: { row: 70, col: 50 } }
+  const [history, setHistory] = useState<{grid: number[][], size: GridSize, palette: string[]}[]>(() => [
+    { grid: makeGrid({ row: 70, col: 50 }), size: { row: 70, col: 50 }, palette: ['#FFFFFF', '#000000'] }
   ]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [grid, setGrid] = useState(() => history[0].grid);
@@ -69,7 +69,7 @@ function App() {
     setGridSize(newSize);
     setPalette(['#FFFFFF', '#000000']);
     setBackgroundImage(null);
-    setHistory([{ grid: newGrid, size: newSize }]);
+    setHistory([{ grid: newGrid, size: newSize, palette: ['#FFFFFF', '#000000'] }]);
     setHistoryIndex(0);
     setActiveTab('edit'); // そのまま編集画面へ
     setCurrentProjectId(null);
@@ -81,7 +81,7 @@ function App() {
     gridRef.current = p.grid;
     setGridSize(p.size);
     setPalette(p.palette);
-    setHistory([{ grid: p.grid, size: p.size }]);
+    setHistory([{ grid: p.grid, size: p.size, palette: p.palette }]);
     setHistoryIndex(0);
     setCurrentProjectId(p.id);
     setActiveTab('edit'); // 編集画面へ切り替え
@@ -103,7 +103,7 @@ function App() {
         if (savedSize) setGridSize(savedSize);
         
         if (savedGrid && savedSize) {
-          setHistory([{ grid: savedGrid, size: savedSize }]);
+          setHistory([{ grid: savedGrid, size: savedSize, palette: savedPalette || palette }]);
         }
       } catch (e) {
         console.error("Load failed", e);
@@ -124,12 +124,13 @@ function App() {
 
 
 
-  const saveHistory = useCallback((currentGrid: number[][], currentSize: GridSize) => {
+  const saveHistory = useCallback((currentGrid: number[][], currentSize: GridSize, currentPalette = palette) => {
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
       newHistory.push({ 
         grid: JSON.parse(JSON.stringify(currentGrid)), 
-        size: { ...currentSize } 
+        size: { ...currentSize },
+        palette: [...currentPalette],
       });
       if (newHistory.length > 50) newHistory.shift(); 
       return newHistory;
@@ -138,7 +139,7 @@ function App() {
       const next = prev + 1;
       return next >= 50 ? 49 : next;
     });
-  }, [historyIndex]);
+  }, [historyIndex, palette]);
 
   //グリッドサイズ変更
   const resizeGrid = (newSize: GridSize) => {
@@ -259,6 +260,8 @@ function App() {
           const prev = history[historyIndex - 1];
           setGrid(prev.grid);
           setGridSize(prev.size);
+          setPalette(prev.palette);
+          setNowColorID(currentID => Math.min(currentID, prev.palette.length - 1));
           setHistoryIndex(historyIndex - 1);
       }
   };
@@ -268,6 +271,8 @@ function App() {
           const next = history[historyIndex + 1];
           setGrid(next.grid);
           setGridSize(next.size);
+          setPalette(next.palette);
+          setNowColorID(currentID => Math.min(currentID, next.palette.length - 1));
           setHistoryIndex(historyIndex + 1);
       }
   };
@@ -345,6 +350,25 @@ function App() {
     setNowColorID(palette.length); // 追加した色をすぐ選択
   };
 
+  const deleteColor = (colorID: number) => {
+    if (palette.length <= 2) return;
+
+    const newPalette = palette.filter((_, id) => id !== colorID);
+    const newGrid = gridRef.current.map(row => row.map(id => {
+      if (id === colorID) return 0;
+      return id > colorID ? id - 1 : id;
+    }));
+
+    setPalette(newPalette);
+    setGrid(newGrid);
+    gridRef.current = newGrid;
+    setNowColorID(currentID => {
+      if (currentID === colorID) return Math.min(colorID, newPalette.length - 1);
+      return currentID > colorID ? currentID - 1 : currentID;
+    });
+    saveHistory(newGrid, gridSize, newPalette);
+  };
+
   const saveCurrentProject = async (isOverwrite: boolean = false) => {
     // ★ 修正1: 関数開始の '{' が抜けていたのを修正
     // ★ 修正2: サムネイル生成ロジックを完全に削除
@@ -418,8 +442,8 @@ function App() {
 
 
   return (
-    <FolderUI currentTab={activeTab} setCurrentTab={setActiveTab} tabs={MAIN_TABS}>
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+    <FolderUI currentTab={activeTab} setCurrentTab={setActiveTab} tabs={MAIN_TABS} fullWidth>
+      <div style={{ textAlign: 'center', marginTop: activeTab === 'edit' ? '2px' : '20px' }}>
         {activeTab === 'select' ? (
           /* --- 作品選択画面 --- */
           <div style={{ 
@@ -505,7 +529,7 @@ function App() {
           /* --- 編集画面 --- */
           <Editor 
             grid={grid} palette={palette} nowColorID={nowColorID} setNowColorID={setNowColorID} 
-            UpdataPaletteID={UpdataPaletteID} addColor={addColor} handleImageUpload={handleImageUpload} 
+            UpdataPaletteID={UpdataPaletteID} addColor={addColor} deleteColor={deleteColor} handleImageUpload={handleImageUpload}
             gridSize={gridSize} resizeGrid={resizeGrid} backgroundImage={backgroundImage}
             bgOpacity={bgOpacity} setBgOpacity={setBgOpacity} penSize={penSize} setPenSize={setPenSize} 
             paintCells={paintCells} setLastPos={setLastPos} zoom={zoom} setZoom={setZoom} 

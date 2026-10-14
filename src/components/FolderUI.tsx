@@ -7,6 +7,7 @@ type UIProps<T extends string> = {
     tabs: { label: string; value: T }[]; 
     children: ReactNode;
     isSmall?: boolean;
+    fullWidth?: boolean;
 };
 
 
@@ -16,18 +17,19 @@ export const FolderUI = <T extends string>({
     tabs, 
     children ,
     isSmall = false,
+    fullWidth = false,
 }: UIProps<T>) => {
   
   return (
     <div style={{ 
-        padding: isSmall ? '0' : 'clamp(12px, 5vw, 40px)',
-        maxWidth: isSmall ? '100%' : '900px', 
+        padding: isSmall ? '0' : fullWidth ? '12px clamp(12px, 2vw, 28px)' : 'clamp(12px, 5vw, 40px)',
+        maxWidth: isSmall || fullWidth ? '100%' : '900px',
         margin: '0 auto',
         boxSizing: 'border-box',
         width: '100%'
     }}>
       {/*タブボタン*/}
-      <div style={{ display: 'flex', gap: `7px`, paddingLeft: '10px',  alignItems: 'flex-end' }}>
+      <div style={{ display: 'flex', gap: `6px`, paddingLeft: isSmall ? '2px' : '10px', alignItems: 'flex-end', minWidth: 0 }}>
         {tabs.map((tab) => (
           <TabButton
             key={tab.value}
@@ -45,9 +47,10 @@ export const FolderUI = <T extends string>({
           position: 'relative',
           zIndex: 2,
           border: '4px solid var(--border-color)',
+          borderRadius: '0',
           margin: '0 auto',
-          padding: isSmall ? '15px 10px' : 'clamp(12px, 4vw, 20px) clamp(12px, 5vw, 40px)',
-          minHeight: isSmall ? 'auto' : '500px',
+        padding: isSmall ? '12px 6px' : fullWidth ? '14px' : 'clamp(12px, 4vw, 20px) clamp(12px, 5vw, 40px)',
+          minHeight: isSmall || fullWidth ? 'auto' : '500px',
           boxSizing: 'border-box',
         }}
       >
@@ -75,7 +78,7 @@ const TabButton = ({ label, isActive, onClick, isSmall}: TabButtonProps & { isSm
         fontFamily: 'inherit',
         fontSize: isSmall ? '12px' : '18px', 
         padding: isSmall ? '8px 0' : '15px 0',
-        width: isSmall ? '75px' : '120px',
+        width: isSmall ? 'min(68px, calc((100% - 12px) / 2))' : '120px',
         fontWeight: 'bold',
         textAlign: 'center',
         cursor: 'pointer',
