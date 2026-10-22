@@ -4,24 +4,24 @@ import {type  ReactNode } from 'react';
 type UIProps<T extends string> = {
     currentTab: T;
     setCurrentTab: (tab: T) => void;
-    tabs: { label: string; value: T }[]; 
+    tabs: { label: string; value: T }[];
     children: ReactNode;
     isSmall?: boolean;
     fullWidth?: boolean;
 };
 
 
-export const FolderUI = <T extends string>({ 
-    currentTab, 
-    setCurrentTab, 
-    tabs, 
+export const FolderUI = <T extends string>({
+    currentTab,
+    setCurrentTab,
+    tabs,
     children ,
     isSmall = false,
     fullWidth = false,
 }: UIProps<T>) => {
-  
+
   return (
-    <div style={{ 
+    <div className={`folder-ui${isSmall ? ' folder-ui-small' : ''}`} style={{
         padding: isSmall ? '0' : fullWidth ? '12px clamp(12px, 2vw, 28px)' : 'clamp(12px, 5vw, 40px)',
         maxWidth: isSmall || fullWidth ? '100%' : '900px',
         margin: '0 auto',
@@ -29,7 +29,7 @@ export const FolderUI = <T extends string>({
         width: '100%'
     }}>
       {/*タブボタン*/}
-      <div style={{ display: 'flex', gap: `6px`, paddingLeft: isSmall ? '2px' : '10px', alignItems: 'flex-end', minWidth: 0 }}>
+      <div className="folder-tabs" style={{ display: 'flex', gap: `6px`, paddingLeft: isSmall ? '2px' : '10px', alignItems: 'flex-end', minWidth: 0 }}>
         {tabs.map((tab) => (
           <TabButton
             key={tab.value}
@@ -41,7 +41,8 @@ export const FolderUI = <T extends string>({
         ))}
       </div>
       {/*タブ内容*/}
-      <div
+        <div
+        className="folder-content"
         style={{
           backgroundColor: 'var(--folder-bg)',
           position: 'relative',
@@ -73,10 +74,11 @@ const TabButton = ({ label, isActive, onClick, isSmall}: TabButtonProps & { isSm
 
   return (
     <button
+      className={`folder-tab${isActive ? ' is-active' : ''}`}
       onClick={onClick}
       style={{
         fontFamily: 'inherit',
-        fontSize: isSmall ? '12px' : '18px', 
+        fontSize: isSmall ? '12px' : '18px',
         padding: isSmall ? '8px 0' : '15px 0',
         width: isSmall ? 'min(68px, calc((100% - 12px) / 2))' : '120px',
         fontWeight: 'bold',
@@ -88,23 +90,23 @@ const TabButton = ({ label, isActive, onClick, isSmall}: TabButtonProps & { isSm
 
         // Z-index で下の箱の枠線より「手前」に来るようにする
         zIndex: isActive ? 3 : 1,
-        
+
         // 色の切り替え
-        backgroundColor: isActive ? 'var(--folder-bg)' : '#fbd5d5', 
+        backgroundColor: isActive ? 'var(--folder-bg)' : '#fbd5d5',
         color: 'var(--text-color)',
 
         // 境界線の制御
         borderStyle: 'solid',
         borderColor: 'var(--border-color)',
         // アクティブ時は下だけ 0。非アクティブ時は全辺 borderWidth
-        borderWidth: isActive 
-          ? `${borderWidth} ${borderWidth} 0 ${borderWidth}` 
+        borderWidth: isActive
+          ? `${borderWidth} ${borderWidth} 0 ${borderWidth}`
           : `${borderWidth}`,
-        
+
         // 下の箱への「めり込み」
         // 下の箱の border-top (4px) を隠すために、境界線の太さ分だけマイナスにする
         marginBottom: `-${borderWidth}`,
-        
+
         // アクティブなタブを少しだけ高く（上に大きく）見せると、より「タブ」らしくなります
         marginTop: isActive ? '0' : '4px',
       }}

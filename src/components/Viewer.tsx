@@ -1,8 +1,9 @@
-import { useState } from 'react'; 
+import { useEffect, useState } from 'react';
 
 type ViewerProps = {
     grid: number[][];
     palette: string[];
+    isActive?: boolean;
 };
 
 // 2次元配列を右に90度回転させる関数
@@ -19,11 +20,18 @@ const rotateGrid90 = (grid: number[][]): number[][] => {
     return newGrid;
 };
 
-export const Viewer = ({ grid, palette }: ViewerProps) => {
+export const Viewer = ({ grid, palette, isActive = true }: ViewerProps) => {
     const [displayGrid, setDisplayGrid] = useState(grid);
     const [currentRow, setCurrentRow] = useState(1);
     const [checkedStates, setCheckedStates] = useState<Record<number, boolean[]>>({});
     const [rowDirections, setRowDirections] = useState<Record<number, 'R' | 'L'>>({});
+
+    useEffect(() => {
+        setDisplayGrid(grid);
+        setCurrentRow(1);
+        setCheckedStates({});
+        setRowDirections({});
+    }, [grid, isActive]);
 
     // 進行方向の判定
     const currentDir = rowDirections[currentRow] || (currentRow % 2 !== 0 ? 'R' : 'L');
@@ -88,10 +96,10 @@ export const Viewer = ({ grid, palette }: ViewerProps) => {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'row', gap: '30px', alignItems: 'flex-start', justifyContent: 'center', width: '100%' }}>
+        <div className="viewer-layout" style={{ display: 'flex', flexDirection: 'row', gap: '30px', alignItems: 'flex-start', justifyContent: 'center', width: '100%' }}>
             
             {/* 左側：プレビュー */}
-            <div style={{ display: 'flex', width: 'min(400px, calc(100vw - 48px))', height: 'min(400px, calc(100vw - 48px))', flexShrink: 0, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+            <div className="viewer-canvas" style={{ display: 'flex', width: 'min(400px, calc(100vw - 48px))', height: 'min(400px, calc(100vw - 48px))', flexShrink: 0, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
                 <div style={{
                     width: totalCols >= totalRows ? '100%' : 'auto',
                     height: totalRows >= totalCols ? '100%' : 'auto',
@@ -124,7 +132,7 @@ export const Viewer = ({ grid, palette }: ViewerProps) => {
             </div>
 
             {/* 右側：操作パネル */}
-            <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div className="viewer-controls" style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
 
                 {/* 回転ボタンを独立した行にして、右寄せにする */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', paddingRight: '5px' }}>
@@ -165,7 +173,7 @@ export const Viewer = ({ grid, palette }: ViewerProps) => {
                     <span style={{ fontSize: '14px', fontWeight: 'bold' }}>からみて...</span>
                 </div>
 
-                <div style={{ maxHeight: '250px', overflowY: 'auto', padding: '12px', border: '4px solid var(--border-color)', borderRadius: '12px', backgroundColor: 'white' }}>
+                <div className="viewer-instructions" style={{ maxHeight: '250px', overflowY: 'auto', padding: '12px', border: '4px solid var(--border-color)', borderRadius: '12px', backgroundColor: 'white' }}>
                     {instructions.map((inst, idx) => (
                         <div key={idx} onClick={() => toggleCheck(idx)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', borderBottom: '1px solid #eee', cursor: 'pointer' }}>
                             <div style={{ 

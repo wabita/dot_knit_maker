@@ -5,12 +5,11 @@
 }
 
 :root {
-  /* ラフ画っぽい色味の定義 */
-  --bg-color: #fff9f4;
-  --dot-color: #e8b9a8;
-  --folder-bg: #fffdfb;
-  --border-color: #bd625b;
-  --text-color: #503a37;
+  --bg-color: #fffdf4;
+  --dot-color: #f5c8bb;
+  --folder-bg: #fffdfa;
+  --border-color: #e6372a;
+  --text-color: #3f4944;
 }
 
 body {
@@ -19,7 +18,7 @@ body {
   color: var(--text-color);
   
   background-color: var(--bg-color);
-  background-image: radial-gradient(var(--dot-color) 13%, transparent 13%);
+  background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
   background-position: 0 0;
   background-size: 24px 24px;
   min-width: 320px;
