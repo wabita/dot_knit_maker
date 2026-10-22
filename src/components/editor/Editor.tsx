@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { EditorCanvas } from './EditorCanvas';
 import { EditorControls } from './EditorControls';
-import { useEditorContext } from './EditorContext';
+import { useEditorContext } from './useEditorContext';
 import type { EditorMode } from './types';
 
 export const Editor = () => {

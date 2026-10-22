@@ -1,5 +1,5 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { useEditorContext } from './EditorContext';
+import { useEditorContext } from './useEditorContext';
 import type { EditorMode } from './types';
 
 type EditorCanvasProps = {
@@ -23,7 +23,7 @@ export const EditorCanvas = (props: EditorCanvasProps) => {
     undo, redo, canUndo, canRedo,
   } = useEditorContext();
   const {
-    mode, setMode, offset, setOffset, isPanning, isResizing,
+    mode, setMode, offset, setOffset, isPanning,
     setIsPanning, setIsResizing, setLastPointerPos, containerRef, handleGridPointerDown, handleWheel,
   } = props;
 

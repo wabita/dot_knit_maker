@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useEditorContext } from './EditorContext';
+import { useEditorContext } from './useEditorContext';
 
 export const ColorPalette = () => {
   const { palette, nowColorID, setNowColorID, UpdataPaletteID, addColor, deleteColor } = useEditorContext();

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { useEditorContext } from './EditorContext';
+import { useEditorContext } from './useEditorContext';
 import { ColorPalette } from './ColorPalette';
 import type { EditorMode } from './types';
 
