@@ -20,7 +20,7 @@ type EditorCanvasProps = {
 export const EditorCanvas = (props: EditorCanvasProps) => {
   const {
     grid, palette, gridSize, backgroundImage, bgOpacity, bgOffset, bgScale, zoom, setZoom,
-    undo, redo, canUndo, canRedo, setBgScale,
+    undo, redo, canUndo, canRedo,
   } = useEditorContext();
   const {
     mode, setMode, offset, setOffset, isPanning, isResizing,

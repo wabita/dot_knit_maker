@@ -12,7 +12,7 @@ type Props = {
   activeTab: MainTab; studioTab: StudioTab; projects: Project[]; onOpenProject: (project: Project) => void;
   onToggleFavorite: (id: string) => void; onDeleteProject: (id: string) => void;
   newProjectName: string; newProjectSize: GridSize; onNameChange: (name: string) => void;
-  onSizeChange: (size: GridSize) => void; onCreateNewProject: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSizeChange: (update: (current: GridSize) => GridSize) => void; onCreateNewProject: (event: React.FormEvent<HTMLFormElement>) => void;
   editorContextValue: EditorProps; grid: number[][]; gridSize: GridSize; palette: string[];
 };
 export const Workspace = ({ activeTab, studioTab, projects, onOpenProject, newProjectName, newProjectSize,

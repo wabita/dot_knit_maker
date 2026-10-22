@@ -8,7 +8,7 @@ export const Editor = () => {
     const props = useEditorContext();
     const {
         gridSize, bgOffset, setBgOffset, bgScale, setBgScale, paintCells, setLastPos,
-        zoom, setZoom, undo, redo, canUndo, canRedo, endAction,
+        zoom, setZoom, endAction,
     } = props;
     const [isDrawing, setIsDrawing] = useState(false);//描画中か
     const [offset, setOffset] = useState({ x: 0, y: 0 });

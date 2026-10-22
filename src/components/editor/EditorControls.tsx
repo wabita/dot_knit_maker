@@ -21,7 +21,7 @@ export const EditorControls = ({
   const {
     grid, palette,
     handleImageUpload, gridSize, resizeGrid, backgroundImage, bgOpacity, setBgOpacity,
-    penSize, setPenSize, handleRefreshConversion, clearGrid, bgOffset, setBgOffset,
+    penSize, setPenSize, handleRefreshConversion, clearGrid, setBgOffset,
     saveProject, isProjectLoaded,
   } = useEditorContext();
   const [inputSize, setInputSize] = useState(gridSize);
